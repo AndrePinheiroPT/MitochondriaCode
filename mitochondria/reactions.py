@@ -22,11 +22,11 @@ ACETYL_COA = Molecules('C23H38N7O17P3S', 'Acetyl CoA')
 OXALOACETIC_ACID = Molecules('C4H4O5', 'Oxaloacetic acid')
 CITRIC_ACID = Molecules('C6H8O7', 'Citric acid')
 
-cytoplasm_system = System(1*[GLICOSE] + 2*[ATP] + 4*[ADP] + 2*[NADP])
-mitochondria_inner_system = System(50*[HYDROGEN_CATION] + 8*[NADP] + 2*[FAD] + 6*[OXYGEN] + 40*[ADP] + 2*[COA, OXALOACETIC_ACID])
+cytoplasm_system = System(1*[GLICOSE] + 2*[ATP] + 2*[ADP] + 2*[NADP])
+mitochondria_inner_system = System(2*[COA] + 8*[NADP] + 2*[FAD] + 1*[OXALOACETIC_ACID] + 100*[ADP])
 mitochondria_outer_system = System([])
 
-acectors = [0, 0, 0]
+acectors = [0, 0, 0, 0]
 subs = 0
 
 def glycolysis():
@@ -47,10 +47,11 @@ def krebs_circle():
 
 
 def atpase():
-    if mitochondria_outer_system.length(HYDROGEN_CATION) > mitochondria_inner_system.length(HYDROGEN_CATION):
-        mitochondria_outer_system.remove_molecule(HYDROGEN_CATION)
-        mitochondria_inner_system.add_molecule(HYDROGEN_CATION)
-
+    if mitochondria_outer_system.length(HYDROGEN_CATION) > mitochondria_inner_system.length(HYDROGEN_CATION) and mitochondria_outer_system.length(HYDROGEN_CATION) >= 2:
+        for i in range(0, 2):
+            mitochondria_outer_system.remove_molecule(HYDROGEN_CATION)
+            mitochondria_inner_system.add_molecule(HYDROGEN_CATION)
+        print('atao')
         mitochondria_inner_system.do_reaction([ADP], [ATP])
 
 
@@ -61,12 +62,11 @@ def hydro_protein():
 
 
 def chain():
-    global subs
+    global subs, dropped
 
-    if acectors[0] == 0 and mitochondria_inner_system.length(NADHP) >= 1:
-        mitochondria_inner_system.do_reaction(1*[NADHP, HYDROGEN_CATION], 1*[NADP] + 2*[HYDROGEN_CATION])
+    if acectors[0] == 0 and mitochondria_inner_system.length(NADHP) >= 1 and mitochondria_inner_system.length(HYDROGEN_CATION) >= 2: 
+        mitochondria_inner_system.do_reaction(1*[NADHP, HYDROGEN_CATION], 1*[NADP] + 2*[HYDROGEN_CATION] + 6*[OXYGEN])
         acectors[0] += 2
-        hydro_protein()
 
     if subs == 0 and mitochondria_inner_system.length(FADH2) >= 1 :
         mitochondria_inner_system.do_reaction(1*[FADH2], 1*[FAD] + 2*[HYDROGEN_CATION])
@@ -75,23 +75,29 @@ def chain():
     if subs == 0 and acectors[0] == 0:
         return 0
 
-    if acectors[0] >= 2 and acectors[1] == 0:
+    if acectors[0] >= 2 and acectors[1] == 0 and mitochondria_inner_system.length(HYDROGEN_CATION) >= 2:
+        hydro_protein()
         acectors[1] += 2
         acectors[0] -= 2
     elif acectors[0] == 0 and acectors[1] == 0 and subs >= 2:
         acectors[1] += 2
         subs -= 2
     
-    if acectors[1] >= 2 and acectors[2] <= 2:
+    if acectors[1] >= 2 and acectors[2] < 2 and mitochondria_inner_system.length(HYDROGEN_CATION) >= 2:
         hydro_protein()
         acectors[1] -= 2
         acectors[2] += 2
 
-    if acectors[2] == 2:
+    if acectors[2] >= 2 and acectors[3] <= 2 and mitochondria_inner_system.length(HYDROGEN_CATION) >= 2:
         hydro_protein()
-    
-    if mitochondria_inner_system.length(HYDROGEN_CATION) >= 4 and mitochondria_inner_system.length(OXYGEN) >= 1 and acectors[2] == 4:
-        acectors[2] -= 4
+        acectors[2] -= 2
+        acectors[3] += 2
+
+    if acectors[3] == 2 and mitochondria_inner_system.length(HYDROGEN_CATION) >= 2:
+        hydro_protein()
+
+    if mitochondria_inner_system.length(HYDROGEN_CATION) >= 4 and mitochondria_inner_system.length(OXYGEN) >= 1 and acectors[3] == 4:
+        acectors[3] -= 4
         mitochondria_inner_system.do_reaction(4*[HYDROGEN_CATION] + 2*[OXYGEN], 2*[WATER])
 
 
@@ -107,15 +113,15 @@ while True:
         mitochondria_inner_system.add_molecule(NADHP)
 
     acetyl_CoA_synthase()
+
     krebs_circle()
     
     chain()
 
     atpase()
 
-
     print(f'cytoplasm_system: Glicose {cytoplasm_system.length(GLICOSE)} | ATP {cytoplasm_system.length(ATP)} | NADH+ {cytoplasm_system.length(NADHP)}  ', end='/  ')
-    print(f'mitochondria_inner_system: ATP {mitochondria_inner_system.length(ATP)} | NADH {mitochondria_inner_system.length(NADHP)} | CO2 {mitochondria_inner_system.length(CARBON_DIOXIDE)} | FADH2 {mitochondria_inner_system.length(FADH2)} | H+ {mitochondria_inner_system.length(HYDROGEN_CATION)} {acectors}')
+    print(f'mitochondria_inner_system: ATP {mitochondria_inner_system.length(ATP)} | NADH {mitochondria_inner_system.length(NADHP)} | CO2 {mitochondria_inner_system.length(CARBON_DIOXIDE)} | FADH2 {mitochondria_inner_system.length(FADH2)} | H+ {mitochondria_inner_system.length(HYDROGEN_CATION)} {acectors} {mitochondria_outer_system.length(HYDROGEN_CATION)}')
     sleep(1)
     
 
