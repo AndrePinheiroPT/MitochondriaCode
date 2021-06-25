@@ -90,7 +90,6 @@ def show_status():
     print(f'| FADH2 {mitochondria_inner_system.length(FADH2)} | H+ {mitochondria_inner_system.length(HYDROGEN_CATION)} | Water {mitochondria_inner_system.length(WATER)} | Nº of electrons in chain {Q} ')
 
 
-
 def simulation():
     while True:
         glycolysis()
