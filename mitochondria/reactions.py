@@ -1,6 +1,6 @@
 from random import randint
 from time import sleep
-from chemistry import *
+from mitochondria.chemistry import *
 
 # Set all molecules
 HYDROGEN_CATION = Molecules('H+', 'Hydrogen cation')
