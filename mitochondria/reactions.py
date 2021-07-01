@@ -22,10 +22,12 @@ ACETYL_COA = Molecules('C23H38N7O17P3S', 'Acetyl CoA')
 OXALOACETIC_ACID = Molecules('C4H4O5', 'Oxaloacetic acid')
 CITRIC_ACID = Molecules('C6H8O7', 'Citric acid')
 
-cytoplasm_system = System(1*[GLICOSE] + 2*[ATP] + 2*[ADP] + 2*[NAD])
-mitochondria_inner_system = System(2*[COA] + 8*[NAD] + 2*[FAD] + 1*[OXALOACETIC_ACID] + 100*[ADP] + 0*[OXYGEN])
+# Define systems
+cytoplasm_system = 0
+mitochondria_inner_system = 0
 mitochondria_outer_system = System([])
 
+# Define number of electrons in cahin
 complexIV = 0
 Q = 0
 
@@ -47,6 +49,8 @@ def krebs_circle():
 
 
 def atpase():
+    # Makes ATP using the gradient of hydrogen cations, it is need two hydrogens of difference
+    # to do this.
     if mitochondria_outer_system.length(HYDROGEN_CATION) > mitochondria_inner_system.length(HYDROGEN_CATION):
         if mitochondria_outer_system.length(HYDROGEN_CATION) >= 2:
             for i in range(0, 2):
@@ -56,6 +60,7 @@ def atpase():
 
 
 def hydro_protein():
+    # Ative transport
     for k in range(0, 2):
         mitochondria_inner_system.remove_molecule(HYDROGEN_CATION)
         mitochondria_outer_system.add_molecule(HYDROGEN_CATION)
@@ -64,6 +69,7 @@ def hydro_protein():
 def electron_transport_chain():
     global Q, complexIV
 
+    # Get all electrons and add them in Q
     if mitochondria_inner_system.length(NADH) >= 1 and mitochondria_inner_system.length(HYDROGEN_CATION) >= 2:
         hydro_protein()
         mitochondria_inner_system.do_reaction(1*[NADH], 1*[NAD] + 2*[HYDROGEN_CATION])
@@ -74,11 +80,13 @@ def electron_transport_chain():
         mitochondria_inner_system.do_reaction(1*[FADH2], 1*[FAD] + 2*[HYDROGEN_CATION])
         Q += 2
 
+    # Protein which uses electrons to do ative trasport
     if mitochondria_inner_system.length(HYDROGEN_CATION) >= 2 and Q >= 2 and complexIV < 4:
         hydro_protein()
         Q -= 2
         complexIV += 2
 
+    # Protein which uses electrons to do ative trasport and make water with them
     if mitochondria_inner_system.length(HYDROGEN_CATION) >= 4 and mitochondria_inner_system.length(OXYGEN) >= 1 and complexIV == 4:
         complexIV -= 4
         mitochondria_inner_system.do_reaction(4*[HYDROGEN_CATION] + 2*[OXYGEN], 2*[WATER])
@@ -90,10 +98,16 @@ def show_status():
     print(f'| FADH2 {mitochondria_inner_system.length(FADH2)} | H+ {mitochondria_inner_system.length(HYDROGEN_CATION)} | Water {mitochondria_inner_system.length(WATER)} | Nº of electrons in chain {Q} ')
 
 
-def simulation():
+def simulation(o2, glicose, coa, fad, atp_cy, atp_mi, adp_cy, adp_mi, nad_cy, nad_mi, nadh_cy, nadh_mi):
+    global cytoplasm_system, mitochondria_inner_system
+
+    # Set the values of the systems
+    cytoplasm_system = System(glicose*[GLICOSE] + atp_cy*[ATP] + adp_cy*[ADP] + nad_cy*[NAD])
+    mitochondria_inner_system = System(coa*[COA] + nad_mi*[NAD] + fad*[FAD] + 1*[OXALOACETIC_ACID] + adp_mi*[ADP] + o2*[OXYGEN])
+
     while True:
         glycolysis()
-
+        
         if cytoplasm_system.length(PYRUVATE) >= 1:
             cytoplasm_system.remove_molecule(PYRUVATE)
             mitochondria_inner_system.add_molecule(PYRUVATE)
