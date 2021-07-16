@@ -1,10 +1,6 @@
 # MitochondriaCode
 Do you like how is energy made in our cells? Well, this program has the goal to simulate aerobic respiration!
 
-## How it works? 
-
-
-
 ## Running the project
 
 Prerequisites:
