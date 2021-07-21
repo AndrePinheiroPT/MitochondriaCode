@@ -17,6 +17,8 @@ GLICOSE = Molecules('C6H12O6', 'Glicose')
 OXYGEN_ATOM = Molecules('O', 'Oxygen atom')
 OXYGEN = Molecules('O2', 'Oxygen')
 PYRUVATE = Molecules('C3H4O3', 'Pyruvate')
+LATIC_ACID = Molecules('C3H6O3', 'Pyruvate')
+ETANOL = Molecules('C2H5OH', 'Etanol')
 COA = Molecules('C21H36N7O16P3S', 'CoA')
 ACETYL_COA = Molecules('C23H38N7O17P3S', 'Acetyl CoA')
 OXALOACETIC_ACID = Molecules('C4H4O5', 'Oxaloacetic acid')
@@ -33,7 +35,14 @@ Q = 0
 
 def glycolysis():
     cytoplasm_system.do_reaction(1*[GLICOSE] + 2*[ATP], 2*[PGAL] + 2*[ADP])
-    cytoplasm_system.do_reaction(1*[PGAL, NAD] + 2*[ADP], 1*[PYRUVATE, NADH, HYDROGEN_CATION] + 2*[ATP])
+    cytoplasm_system.do_reaction(1*[PGAL, NAD] + 2*[ADP], 1*[PYRUVATE, NADH, HYDROGEN_CATION, HYDROGEN_CATION] + 2*[ATP])
+
+
+def pyruvate_reduction(lost_CO2):
+    if lost_CO2:
+        cytoplasm_system.do_reaction(1*[PYRUVATE, NADH, HYDROGEN_CATION], 1*[NAD, LATIC_ACID])
+    else:
+        cytoplasm_system.do_reaction(1*[PYRUVATE, NADH, HYDROGEN_CATION], 1*[NAD, CARBON_DIOXIDE, ETANOL])
 
 
 def acetyl_CoA_synthase():
@@ -92,13 +101,16 @@ def electron_transport_chain():
         mitochondria_inner_system.do_reaction(4*[HYDROGEN_CATION] + 2*[OXYGEN], 2*[WATER])
 
 
-def show_status():
-    print(f'cytoplasm_system: Glicose {cytoplasm_system.length(GLICOSE)} | ATP {cytoplasm_system.length(ATP)} | NADH+ {cytoplasm_system.length(NADH)}  ', end='/  ')
-    print(f'mitochondria_inner_system: ATP {mitochondria_inner_system.length(ATP)} | NADH {mitochondria_inner_system.length(NADH)} | CO2 {mitochondria_inner_system.length(CARBON_DIOXIDE)} ', end='')
-    print(f'| FADH2 {mitochondria_inner_system.length(FADH2)} | H+ {mitochondria_inner_system.length(HYDROGEN_CATION)} | Water {mitochondria_inner_system.length(WATER)} | Nº of electrons in chain {Q} ')
+def show_status(opt):
+    if opt == 1:
+        print(f'cytoplasm_system: Glicose {cytoplasm_system.length(GLICOSE)} | ATP {cytoplasm_system.length(ATP)} | NADH+ {cytoplasm_system.length(NADH)}  ', end='/  ')
+        print(f'mitochondria_inner_system: ATP {mitochondria_inner_system.length(ATP)} | NADH {mitochondria_inner_system.length(NADH)} | CO2 {mitochondria_inner_system.length(CARBON_DIOXIDE)} ', end='')
+        print(f'| FADH2 {mitochondria_inner_system.length(FADH2)} | H+ {mitochondria_inner_system.length(HYDROGEN_CATION)} | Water {mitochondria_inner_system.length(WATER)} | Nº of electrons in chain {Q} ')
+    else:
+        print(f'cytoplasm_system: Glicose {cytoplasm_system.length(GLICOSE)} | ATP {cytoplasm_system.length(ATP)} | NADH+ {cytoplasm_system.length(NADH)} | CO2 {cytoplasm_system.length(CARBON_DIOXIDE)} | Latic acid {cytoplasm_system.length(LATIC_ACID)} | Etanol {cytoplasm_system.length(ETANOL)}')
 
 
-def simulation(o2, glicose, coa, fad, atp_cy, atp_mi, adp_cy, adp_mi, nad_cy, nad_mi, nadh_cy, nadh_mi):
+def simulation(o2, glicose, coa, fad, atp_cy, atp_mi, adp_cy, adp_mi, nad_cy, nad_mi, nadh_cy, nadh_mi, opt):
     global cytoplasm_system, mitochondria_inner_system
 
     # Set the values of the systems
@@ -107,22 +119,28 @@ def simulation(o2, glicose, coa, fad, atp_cy, atp_mi, adp_cy, adp_mi, nad_cy, na
 
     while True:
         glycolysis()
-        
-        if cytoplasm_system.length(PYRUVATE) >= 1:
-            cytoplasm_system.remove_molecule(PYRUVATE)
-            mitochondria_inner_system.add_molecule(PYRUVATE)
 
-        if cytoplasm_system.length(NADH) >= 1:
-            cytoplasm_system.remove_molecule(NADH)
-            mitochondria_inner_system.add_molecule(NADH)
+        if opt == 1:
+            if cytoplasm_system.length(PYRUVATE) >= 1:
+                cytoplasm_system.remove_molecule(PYRUVATE)
+                mitochondria_inner_system.add_molecule(PYRUVATE)
 
-        acetyl_CoA_synthase()
-        krebs_circle()
+            if cytoplasm_system.length(NADH) >= 1:
+                cytoplasm_system.remove_molecule(NADH)
+                mitochondria_inner_system.add_molecule(NADH)
 
-        electron_transport_chain()
-        atpase()
+            acetyl_CoA_synthase()
+            krebs_circle()
 
-        show_status()
+            electron_transport_chain()
+            atpase()
+
+        if opt == 2:
+            pyruvate_reduction(False)
+        if opt == 3:
+            pyruvate_reduction(True)
+
+        show_status(opt)
         sleep(1/4)
     
 
